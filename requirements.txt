@@ -1,0 +1,4 @@
+selenium
+cryptography
+pytest
+python-dotenv
