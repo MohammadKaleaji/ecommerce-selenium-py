@@ -11,7 +11,7 @@ class HomePage(BasePage):
 
     def __init__(self, driver):
         super().__init__(driver)
-        self.navigate("/")
+        self.navigate("/ ")
 
     def search_product(self, product_name):
         self.send_keys(self.SEARCH_INPUT, product_name)
