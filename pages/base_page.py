@@ -9,8 +9,8 @@ import os
 
 class BasePage:
     """
-    Simplified base class for all page objects.
-    Chrome-only, with essential Selenium actions.
+    Base class for all page objects.
+    Provides navigation, interaction, and browser setup.
     """
 
     def __init__(self, driver=None):
@@ -18,7 +18,6 @@ class BasePage:
 
     def _init_driver(self):
         chrome_options = webdriver.ChromeOptions()
-        # Add a custom user-agent to help avoid Selenium detection
         chrome_options.add_argument(
             "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
             "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -27,7 +26,7 @@ class BasePage:
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--window-size=1920,1080")
-        # Uncomment the next line if you want to run headless
+        # Uncomment for headless mode
         # chrome_options.add_argument("--headless=new")
 
         driver_path = os.getenv("CHROME_DRIVER_PATH", "drivers/chromedriver")
@@ -42,49 +41,52 @@ class BasePage:
         return driver
 
     def navigate(self, url):
-        """Navigate to a full or relative URL, ensuring no double slashes."""
+        """Navigate to a full or relative URL."""
         if url.startswith("http"):
             full_url = url
         else:
-            # Remove trailing slash from base_url and leading slash from url
             full_url = Environment.base_url().rstrip("/") + "/" + url.lstrip("/")
         self.driver.get(full_url)
         logging.info(f"Navigated to: {self.driver.current_url}")
 
+    def _wait(self, condition, timeout=None):
+        """Generic wait method."""
+        return WebDriverWait(self.driver, timeout or Environment.ELEMENT_TIMEOUT).until(condition)
+
     def find_element(self, locator, timeout=None):
-        return WebDriverWait(self.driver, timeout or Environment.ELEMENT_TIMEOUT).until(
-            EC.presence_of_element_located(locator)
-        )
+        """Find element by locator."""
+        return self._wait(EC.presence_of_element_located(locator), timeout)
 
     def click(self, locator, timeout=None):
-        element = WebDriverWait(self.driver, timeout or Environment.ELEMENT_TIMEOUT).until(
-            EC.element_to_be_clickable(locator)
-        )
+        """Click element by locator."""
+        element = self._wait(EC.element_to_be_clickable(locator), timeout)
         element.click()
 
     def send_keys(self, locator, text, timeout=None):
-        element = WebDriverWait(self.driver, timeout or Environment.ELEMENT_TIMEOUT).until(
-            EC.visibility_of_element_located(locator)
-        )
+        """Send keys to input field."""
+        element = self._wait(EC.visibility_of_element_located(locator), timeout)
         element.clear()
         element.send_keys(text)
 
     def get_text(self, locator, timeout=None):
-        return self.find_element(locator, timeout).text
+        """Get visible text from element."""
+        element = self.find_element(locator, timeout)
+        return element.text.strip()
 
     def is_visible(self, locator, timeout=None):
+        """Return True if element is visible."""
         try:
-            WebDriverWait(self.driver, timeout or Environment.ELEMENT_TIMEOUT).until(
-                EC.visibility_of_element_located(locator)
-            )
+            self._wait(EC.visibility_of_element_located(locator), timeout)
             return True
         except:
             return False
 
     def get_page_source(self):
+        """Return full HTML source of the current page."""
         return self.driver.page_source
 
     def quit(self):
+        """Quit WebDriver instance."""
         if self.driver:
             self.driver.quit()
             logging.info("Chrome driver quit.")
